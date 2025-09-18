@@ -4,133 +4,39 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="description" content="AR-сцена з планетою для дітей">
-    <title>🌍 AR Планета 🎈</title>
+    <title>🌍 Мир на долоні 🎈</title>
 
     <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
 
+    <!-- TensorFlow.js і Handpose -->
+    <script src="https://unpkg.com/@tensorflow/tfjs-core@4.17.0/dist/tf-core.js"></script>
+    <script src="https://unpkg.com/@tensorflow/tfjs-converter@4.17.0/dist/tf-converter.js"></script>
+    <script src="https://unpkg.com/@tensorflow/tfjs-backend-webgl@4.17.0/dist/tf-backend-webgl.js"></script>
+    <script src="https://unpkg.com/@tensorflow-models/hand-pose-detection@2.0.1"></script>
+
     <style>
-        html, body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background: transparent;
-        }
-        a-scene {
-            width: 100% !important;
-            height: 100% !important;
-            position: fixed;
-            top: 0;
-            left: 0;
-            background: transparent;
-        }
-        .arjs-loader {
-            height: 100%;
-            width: 100%;
-            position: absolute;
-            top: 0;
-            left: 0;
-            background: rgba(135, 206, 235, 0.2);
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            color: #FF4500;
-            font-size: 1.8em;
-            text-align: center;
-            padding: 20px;
-            box-sizing: border-box;
-            font-family: 'Comic Neue', 'Comic Sans MS', cursive, sans-serif;
-        }
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-            100% { transform: scale(1); }
-        }
-        .pulse {
-            animation: pulse 1.5s infinite;
-        }
-        /* Стилі для кнопок звуку та YouTube */
-        .controls {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            z-index: 10000;
-        }
-        .sound-btn, .youtube-btn {
-            padding: 10px 20px;
-            margin-right: 10px;
-            border: none;
-            border-radius: 15px;
-            cursor: pointer;
-            font-family: 'Comic Neue', 'Comic Sans MS', cursive, sans-serif;
-            font-size: 1em;
-        }
-        .sound-btn {
-            background-color: #4CAF50;
-            color: white;
-        }
-        .sound-btn.off {
-            background-color: #f44336;
-        }
-        .youtube-btn {
-            background-color: #FF9800; /* Помаранчевий колір */
-            color: white;
-            text-decoration: none;
-            display: inline-block;
-        }
-        .youtube-btn:hover {
-            background-color: #FFB300;
-        }
-        /* Стилі для модального вікна */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5); /* Прозорий фон */
-            z-index: 10001;
-            justify-content: center;
-            align-items: center;
-        }
-        .modal-content {
-            background-color: rgba(255, 255, 255, 0.9); /* Ледь видимий білий фон */
-            padding: 20px;
-            border-radius: 15px;
-            text-align: center;
-            font-family: 'Comic Neue', 'Comic Sans MS', cursive, sans-serif;
-            font-size: 1.2em;
-            color: #FF4500;
-            max-width: 80%;
-            max-height: 80%;
-            overflow-y: auto;
-        }
-        .close-btn {
-            background-color: #4CAF50;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            margin-top: 10px;
-        }
-        .close-btn:hover {
-            background-color: #45a049;
-        }
+        html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; }
+        a-scene { width: 100% !important; height: 100% !important; position: fixed; top: 0; left: 0; background: transparent; }
+        .arjs-loader { height: 100%; width: 100%; position: absolute; top: 0; left: 0; background: rgba(135, 206, 235, 0.2); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #FF4500; font-size: 1.8em; text-align: center; padding: 20px; box-sizing: border-box; font-family: 'Comic Neue', 'Comic Sans MS', cursive, sans-serif; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+        .pulse { animation: pulse 1.5s infinite; }
+        .controls { position: absolute; bottom: 20px; left: 20px; z-index: 10000; }
+        .sound-btn, .youtube-btn { padding: 10px 20px; margin-right: 10px; border: none; border-radius: 15px; cursor: pointer; font-family: 'Comic Neue', 'Comic Sans MS', cursive, sans-serif; font-size: 1em; }
+        .sound-btn { background-color: #4CAF50; color: white; }
+        .sound-btn.off { background-color: #f44336; }
+        .youtube-btn { background-color: #FF9800; color: white; text-decoration: none; display: inline-block; }
+        .youtube-btn:hover { background-color: #FFB300; }
+        #hand-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 9998; display: none; }
     </style>
 </head>
 <body>
     <div class="arjs-loader" id="loader">
-        <div class="pulse">🌍 Планета 🎈</div>
-        <div style="margin-top: 20px; font-size: 1.2em;">
-            Наведи камеру на маркер! 😊🎨
-        </div>
+        <div class="pulse">🌍 Мир на долоні 🎈</div>
+        <div style="margin-top: 20px; font-size: 1.2em;">Підніми руку перед камерою! 😊🎨</div>
     </div>
+
+    <canvas id="hand-canvas" width="640" height="480"></canvas>
 
     <a-scene
         mindar-image="imageTargetSrc: ./my-marker.mind;"
@@ -148,47 +54,24 @@
             id="camera"
             look-controls="enabled: false"
             position="0 0 0"
-            cursor="rayOrigin: mouse; fuse: false"
-            raycaster="objects: .clickable"
         ></a-camera>
 
         <a-entity mindar-image-target="targetIndex: 0">
             <a-sphere
-                id="planet"
-                position="0 0 0.1"
-                radius="0.5"
+                id="hand-planet"
+                position="0 0 -0.5"
+                radius="0.2"
                 src="./earth.jpg"
+                visible="false"
                 gesture-handler
-                scale="1 1 1"
             >
-                <a-text class="clickable"
-                        value="1"
-                        position="0 0.6 0"
-                        scale="0.3 0.3 0.3"
-                        rotation="0 0 0"
-                        billboard
-                        click-task="task: Мир починається з тебе. Напиши 3 добрі вчинки, які можеш зробити сьогодні.."></a-text>
-                <a-text class="clickable"
-                        value="2"
-                        position="0.6 0 0"
-                        scale="0.3 0.3 0.3"
-                        rotation="0 0 0"
-                        billboard
-                        click-task="task: Сила миру в єдності. Намалюй коло друзів і впиши туди тих, із ким тобі добре."></a-text>
-                <a-text class="clickable"
-                        value="3"
-                        position="0 -0.6 0"
-                        scale="0.3 0.3 0.3"
-                        rotation="0 0 0"
-                        billboard
-                        click-task="task: Мир — це гармонія природи. Намалюй своє «Дерево миру» і підпиши його гілки."></a-text>
-                <a-text class="clickable"
-                        value="4"
-                        position="-0.6 0 0"
-                        scale="0.3 0.3 0.3"
-                        rotation="0 0 0"
-                        billboard
-                        click-task="task: Мир у світі починається з миру в серці. Намалюй свій особистий символ миру.."></a-text>
+                <a-animation
+                    attribute="rotation"
+                    to="0 360 0"
+                    dur="5000"
+                    repeat="indefinite"
+                    begin="fly"
+                ></a-animation>
             </a-sphere>
         </a-entity>
     </a-scene>
@@ -198,59 +81,52 @@
         <a href="https://www.youtube.com/playlist?list=PL6UDFwT9TzFw5K8Tzu_OgsDz7vV3N9eY-" target="_blank" class="youtube-btn">YouTube SmartLessa</a>
     </div>
 
-    <div id="modal" class="modal">
-        <div class="modal-content">
-            <p id="modal-text"></p>
-            <button class="close-btn" onclick="closeModal()">Закрити</button>
-        </div>
-    </div>
-
     <script>
-        function fixHeight() {
-            document.body.style.height = window.innerHeight + 'px';
-        }
+        function fixHeight() { document.body.style.height = window.innerHeight + 'px'; }
         fixHeight();
         window.addEventListener('resize', fixHeight);
 
         const loader = document.querySelector('#loader');
         const targetEntity = document.querySelector('[mindar-image-target]');
-        const planet = document.querySelector('#planet');
+        const handPlanet = document.querySelector('#hand-planet');
         const bgMusic = document.querySelector('#bg-music');
         const soundBtn = document.querySelector('#sound-btn');
-        const modal = document.querySelector('#modal');
-        const modalText = document.querySelector('#modal-text');
+        const canvas = document.querySelector('#hand-canvas');
+        const ctx = canvas.getContext('2d');
+        let handDetector = null;
+        let handDetected = false;
+        let handPosition = { x: 0, y: 0, z: 0 };
+        let lastMoveTime = 0;
+        const MOVE_THRESHOLD = 0.05;
+        const STILL_TIME = 1000;
 
         if (targetEntity) {
             targetEntity.addEventListener('targetFound', () => {
-                console.log("🎯 Маркер знайдено! Планета з\'явилася.");
+                console.log("🎯 Маркер знайдено!");
                 loader.style.display = 'none';
-                if (planet) planet.setAttribute('visible', 'true');
                 if (bgMusic) {
-                    bgMusic.play().catch(e => console.log("🔇 Помилка відтворення музики:", e));
+                    bgMusic.play().catch(e => console.log("🔇 Помилка музики:", e));
                     soundBtn.classList.remove('off');
                     soundBtn.textContent = 'Вимкнути звук';
                 }
+                initHandDetection();
             });
 
             targetEntity.addEventListener('targetLost', () => {
                 console.log("ℹ️ Маркер втрачено.");
                 loader.style.display = 'block';
-                if (planet) planet.setAttribute('visible', 'false');
                 if (bgMusic) bgMusic.pause();
+                handPlanet.setAttribute('visible', 'false');
             });
         }
 
-        // Діагностика завантаження сцени
         document.addEventListener('DOMContentLoaded', () => {
             console.log("✅ DOM завантажено");
-            const scene = document.querySelector('a-scene');
-            if (!scene) console.error("❌ Сцена A-Frame не знайдена");
         });
 
-        // Керування звуком
         soundBtn.addEventListener('click', () => {
             if (bgMusic.paused) {
-                bgMusic.play().catch(e => console.log("🔇 Помилка відтворення музики:", e));
+                bgMusic.play().catch(e => console.log("🔇 Помилка музики:", e));
                 soundBtn.classList.remove('off');
                 soundBtn.textContent = 'Вимкнути звук';
             } else {
@@ -260,92 +136,77 @@
             }
         });
 
-        // Модальне вікно
-        function showModal(task) {
-            modalText.textContent = task;
-            modal.style.display = 'flex';
+        async function initHandDetection() {
+            try {
+                const model = handPoseDetection.SupportedModels.MediaPipeHands;
+                const detectorConfig = {
+                    runtime: 'mediapipe',
+                    solutionPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/hands',
+                    modelType: 'lite'  // Легка модель для швидкості
+                };
+                handDetector = await handPoseDetection.createDetector(model, detectorConfig);
+                console.log("✅ Handpose завантажено!");
+                canvas.style.display = 'block';
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                detectHands();
+            } catch (error) {
+                console.error("❌ Помилка Handpose:", error);
+            }
         }
 
-        function closeModal() {
-            modal.style.display = 'none';
+        function detectHands() {
+            const video = document.querySelector('a-scene').components.camera.el.components.camera.camera;
+            if (video) {
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const hands = handDetector.estimateHands(video);
+                if (hands.length > 0) {
+                    handDetected = true;
+                    const keypoints = hands[0].keypoints3D;
+                    const palmX = keypoints[0].x;  // Долоня
+                    const palmY = keypoints[0].y;
+                    const palmZ = keypoints[0].z;
+                    handPosition = { x: palmX, y: palmY, z: palmZ };
+                    console.log("🖐️ Рука виявлена на позиції:", handPosition);
+                    updatePlanet();
+                } else {
+                    handDetected = false;
+                    handPlanet.setAttribute('visible', 'false');
+                }
+            }
+            requestAnimationFrame(detectHands);
         }
 
-        // Компонент для кліку на точку з модальним вікном
-        AFRAME.registerComponent('click-task', {
-            schema: { task: { type: 'string' } },
-            init: function () {
-                this.el.addEventListener('click', () => {
-                    console.log("Клік на точці: ", this.data.task);  // Дебаг для перевірки кліків
-                    showModal(this.data.task);
-                });
-            }
-        });
-    </script>
+        function updatePlanet() {
+            if (!handDetected) return;
+            handPlanet.setAttribute('visible', 'true');
+            handPlanet.setAttribute('position', `${handPosition.x * 0.5} ${handPosition.y * 0.5} ${handPosition.z * 0.5 - 0.5}`);  // Прив'язуємо до долоні
 
-    <script>
-        // Компонент для обробки жестів (глобальні події + дебаг)
-        AFRAME.registerComponent('gesture-handler', {
-            init: function () {
-                document.addEventListener('touchstart', this.onTouchStart.bind(this));
-                document.addEventListener('touchmove', this.onTouchMove.bind(this));
-                document.addEventListener('touchend', this.onTouchEnd.bind(this));
+            const currentTime = Date.now();
+            const dx = Math.abs(handPosition.x - lastHandPosition.x || 0);
+            const dy = Math.abs(handPosition.y - lastHandPosition.y || 0);
+            lastHandPosition = { ...handPosition };
 
-                this.targetRotation = this.el.getAttribute('rotation') || {x: 0, y: 0, z: 0};
-                this.initialScale = this.el.object3D.scale.x;
-                this.previousTouchDistance = 0;
-                this.isRotating = false;
-                this.isPinching = false;
-                this.startX = 0;
-                this.startY = 0;
-            },
-            onTouchStart: function (evt) {
-                console.log("👆 Touch start:", evt.touches.length, "fingers");
-                if (evt.touches.length === 1) {
-                    this.isRotating = true;
-                    this.startX = evt.touches[0].pageX;
-                    this.startY = evt.touches[0].pageY;
-                } else if (evt.touches.length === 2) {
-                    this.isPinching = true;
-                    this.previousTouchDistance = Math.hypot(
-                        evt.touches[0].pageX - evt.touches[1].pageX,
-                        evt.touches[0].pageY - evt.touches[1].pageY
-                    );
-                    this.initialScale = this.el.object3D.scale.x;
-                    console.log("📏 Initial pinch distance:", this.previousTouchDistance);
-                }
-            },
-            onTouchMove: function (evt) {
-                console.log("👉 Touch move:", evt.touches.length, "fingers");
-                evt.preventDefault();
-                if (this.isRotating && evt.touches.length === 1) {
-                    const deltaX = evt.touches[0].pageX - this.startX;
-                    const deltaY = evt.touches[0].pageY - this.startY;
-                    this.targetRotation.y += deltaX * 0.5;
-                    this.targetRotation.x += deltaY * 0.5;
-                    this.el.setAttribute('rotation', `${this.targetRotation.x} ${this.targetRotation.y} 0`);
-                    this.startX = evt.touches[0].pageX;
-                    this.startY = evt.touches[0].pageY;
-                } else if (this.isPinching && evt.touches.length === 2) {
-                    const currentTouchDistance = Math.hypot(
-                        evt.touches[0].pageX - evt.touches[1].pageX,
-                        evt.touches[0].pageY - evt.touches[1].pageY
-                    );
-                    console.log("📏 Current pinch distance:", currentTouchDistance);
-                    const scaleFactor = currentTouchDistance / this.previousTouchDistance;
-                    const newScale = Math.max(0.5, Math.min(3, this.initialScale * scaleFactor));
-                    this.el.setAttribute('scale', `${newScale} ${newScale} ${newScale}`);
-                    this.previousTouchDistance = currentTouchDistance;
-                    console.log("🔍 New scale:", newScale);
-                }
-            },
-            onTouchEnd: function (evt) {
-                console.log("✋ Touch end:", evt.touches.length, "fingers");
-                if (evt.touches.length === 0) {
-                    this.isRotating = false;
-                    this.isPinching = false;
-                }
+            if (dx > MOVE_THRESHOLD || dy > MOVE_THRESHOLD) {
+                lastMoveTime = currentTime;
+                handPlanet.emit('fly');
+                handPlanet.setAttribute('position', `${handPosition.x * 0.5 + Math.sin(currentTime / 1000) * 0.1} ${handPosition.y * 0.5 + Math.cos(currentTime / 1000) * 0.1} ${handPosition.z * 0.5 - 0.5}`);
+            } else if (currentTime - lastMoveTime > STILL_TIME) {
+                handPlanet.removeAttribute('animation__fly');
+                handPlanet.setAttribute('position', `${handPosition.x * 0.5} ${handPosition.y * 0.5} ${handPosition.z * 0.5 - 0.5}`);
             }
-        });
+
+            // Закриття долоні (щипок: відстань між пальцями мала)
+            const thumbTip = keypoints[4];  // Кінчик великого пальця
+            const indexTip = keypoints[8];  // Кінчик вказівного
+            const pinchDistance = Math.hypot(thumbTip.x - indexTip.x, thumbTip.y - indexTip.y);
+            if (pinchDistance < 0.05) {  // Щипок
+                handPlanet.setAttribute('visible', 'false');
+                console.log("👆 Долоня закрита — планета ховається!");
+            }
+        }
+
+        let lastHandPosition = { x: 0, y: 0 };
     </script>
 </body>
 </html>
