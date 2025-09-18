@@ -3,113 +3,359 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="description" content="AR-сцена для малювання миру">
-    <title>🌍 Малювання миру 🎨</title>
+    <meta name="description" content="AR-сцена з планетою для дітей">
+    <title>🌍 Мир на долоні 🎈</title>
 
     <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
-    <script src="https://unpkg.com/a-painter@0.5.0/dist/a-painter.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/handtrackjs/dist/handtrack.min.js"></script>
 
     <style>
         html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; }
         a-scene { width: 100% !important; height: 100% !important; position: fixed; top: 0; left: 0; background: transparent; }
+        .arjs-loader { height: 100%; width: 100%; position: absolute; top: 0; left: 0; background: rgba(135, 206, 235, 0.2); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #FF4500; font-size: 1.8em; text-align: center; padding: 20px; box-sizing: border-box; font-family: 'Comic Neue', 'Comic Sans MS', cursive, sans-serif; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+        .pulse { animation: pulse 1.5s infinite; }
         .controls { position: absolute; bottom: 20px; left: 20px; z-index: 10000; }
-        .paint-btn { padding: 10px 20px; margin-right: 10px; border: none; border-radius: 15px; cursor: pointer; background-color: #4CAF50; color: white; font-family: 'Comic Neue', 'Comic Sans MS', cursive, sans-serif; font-size: 1em; }
-        .paint-btn:hover { background-color: #45a049; }
-        #color-picker { padding: 5px; font-size: 1em; }
+        .sound-btn, .youtube-btn, .hand-mode-btn { padding: 10px 20px; margin-right: 10px; border: none; border-radius: 15px; cursor: pointer; font-family: 'Comic Neue', 'Comic Sans MS', cursive, sans-serif; font-size: 1em; }
+        .sound-btn { background-color: #4CAF50; color: white; }
+        .sound-btn.off { background-color: #f44336; }
+        .youtube-btn { background-color: #FF9800; color: white; text-decoration: none; display: inline-block; }
+        .youtube-btn:hover { background-color: #FFB300; }
+        .hand-mode-btn { background-color: #2196F3; color: white; }
+        .hand-mode-btn:hover { background-color: #1976D2; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 10001; justify-content: center; align-items: center; }
+        .modal-content { background-color: rgba(255, 255, 255, 0.9); padding: 20px; border-radius: 15px; text-align: center; font-family: 'Comic Neue', 'Comic Sans MS', cursive, sans-serif; font-size: 1.2em; color: #FF4500; max-width: 80%; max-height: 80%; overflow-y: auto; }
+        .close-btn { background-color: #4CAF50; color: white; padding: 10px 20px; border: none; border-radius: 10px; cursor: pointer; margin-top: 10px; }
+        .close-btn:hover { background-color: #45a049; }
+        #video { display: none; }
     </style>
 </head>
 <body>
+    <div class="arjs-loader" id="loader">
+        <div class="pulse">🌍 Мир на долоні 🎈</div>
+        <div style="margin-top: 20px; font-size: 1.2em;">Наведи камеру на маркер або увімкни руку! 😊🎨</div>
+    </div>
+
     <a-scene
+        mindar-image="imageTargetSrc: ./my-marker.mind;"
         vr-mode-ui="enabled: false"
         device-orientation-permission-ui="enabled: false"
+        loading-screen="enabled: false"
         embedded
-        renderer="colorManagement: true; physicallyCorrectLights: true; alpha: true"
-        background="color: transparent"
+        renderer="colorManagement: true; physicallyCorrectLights: true;"
     >
         <a-assets>
-            <audio id="bg-music" src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" preload="auto" loop></audio>
-            <!-- Заміни на власний звук миру, якщо є -->
+            <audio id="bg-music" src="./bg-music.mp3" preload="auto" loop></audio>
         </a-assets>
 
         <a-camera
             id="camera"
-            look-controls="enabled: true"
-            wasd-controls
+            look-controls="enabled: false"
+            position="0 0 0"
+            cursor="rayOrigin: mouse; fuse: false"
+            raycaster="objects: .clickable"
         ></a-camera>
 
-        <!-- Простір для малювання -->
-        <a-entity id="paint-space" position="0 0 -3"></a-entity>
+        <a-entity mindar-image-target="targetIndex: 0">
+            <a-sphere
+                id="marker-planet"
+                position="0 0 0.1"
+                radius="0.5"
+                src="./earth.jpg"
+                gesture-handler
+                scale="1 1 1"
+                visible="true"
+            >
+                <a-text class="clickable"
+                        value="1"
+                        position="0 0.6 0"
+                        scale="0.3 0.3 0.3"
+                        rotation="0 0 0"
+                        billboard
+                        click-task="task: Мир починається з тебе. Напиши 3 добрі вчинки, які можеш зробити сьогодні.."></a-text>
+                <a-text class="clickable"
+                        value="2"
+                        position="0.6 0 0"
+                        scale="0.3 0.3 0.3"
+                        rotation="0 0 0"
+                        billboard
+                        click-task="task: Сила миру в єдності. Намалюй коло друзів і впиши туди тих, із ким тобі добре."></a-text>
+                <a-text class="clickable"
+                        value="3"
+                        position="0 -0.6 0"
+                        scale="0.3 0.3 0.3"
+                        rotation="0 0 0"
+                        billboard
+                        click-task="task: Мир — це гармонія природи. Намалюй своє «Дерево миру» і підпиши його гілки."></a-text>
+                <a-text class="clickable"
+                        value="4"
+                        position="-0.6 0 0"
+                        scale="0.3 0.3 0.3"
+                        rotation="0 0 0"
+                        billboard
+                        click-task="task: Мир у світі починається з миру в серці. Намалюй свій особистий символ миру.."></a-text>
+            </a-sphere>
+        </a-entity>
+
+        <a-sphere
+            id="hand-planet"
+            position="0 0 -0.5"
+            radius="0.2"
+            src="./earth.jpg"
+            gesture-handler
+            scale="1 1 1"
+            visible="false"
+        >
+            <a-animation
+                attribute="rotation"
+                to="0 360 0"
+                dur="5000"
+                repeat="indefinite"
+                begin="fly"
+            ></a-animation>
+        </a-sphere>
     </a-scene>
 
     <div class="controls">
-        <button id="paint-btn" class="paint-btn">Увімкнути малювання</button>
-        <select id="color-picker">
-            <option value="#FFFFFF">Білий (мир)</option>
-            <option value="#00FF00">Зелений (природа)</option>
-            <option value="#0000FF">Синій (спокій)</option>
-        </select>
+        <button id="sound-btn" class="sound-btn">Увімкнути звук</button>
+        <a href="https://www.youtube.com/playlist?list=PL6UDFwT9TzFw5K8Tzu_OgsDz7vV3N9eY-" target="_blank" class="youtube-btn">YouTube SmartLessa</a>
+        <button id="hand-mode-btn" class="hand-mode-btn">Увімк. планету на руці</button>
     </div>
 
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <p id="modal-text"></p>
+            <button class="close-btn" onclick="closeModal()">Закрити</button>
+        </div>
+    </div>
+    <video id="video" playsinline></video>
+
     <script>
-        const scene = document.querySelector('a-scene');
-        const paintSpace = document.querySelector('#paint-space');
-        const paintBtn = document.querySelector('#paint-btn');
-        const colorPicker = document.querySelector('#color-picker');
+        // ВАЖЛИВО! Переконайтесь, що цей код виконується на HTTPS-сервері
+        const video = document.getElementById('video');
+        const modelParams = {
+            flipHorizontal: true, // flip video to be more intuitive
+            maxNumBoxes: 1, // maximum number of hands to detect
+            handFactor: 0.5,
+            scoreThreshold: 0.7 // confidence threshold for detections
+        };
+
+        let handtrackModel = null;
+        let isTracking = false;
+
+        function startHandTracking() {
+            if (isTracking) return;
+            handtrack.startVideo(video)
+                .then(status => {
+                    if (status) {
+                        isTracking = true;
+                        runDetection();
+                        console.log("📹 Відеопотік запущено.");
+                    } else {
+                        console.error("❌ Не вдалося запустити відеопотік.");
+                    }
+                });
+        }
+
+        function stopHandTracking() {
+            if (!isTracking) return;
+            handtrack.stopVideo(video);
+            isTracking = false;
+        }
+
+        function runDetection() {
+            if (!isTracking) return;
+            handtrack.track(video).then(predictions => {
+                if (predictions.length > 0) {
+                    const bbox = predictions[0].bbox;
+                    const [x, y, width, height] = bbox;
+                    const centerX = x + width / 2;
+                    const centerY = y + height / 2;
+                    
+                    // Перетворення координат
+                    // MindAR використовує координати від -0.5 до 0.5 для x,y і -1.0 до 0 для z
+                    const sceneWidth = window.innerWidth;
+                    const sceneHeight = window.innerHeight;
+                    const targetX = (centerX / sceneWidth - 0.5) * -1; // -1 для інвертування
+                    const targetY = (centerY / sceneHeight - 0.5) * -1; // -1 для інвертування
+                    const targetZ = -0.5; // Фіксована відстань
+                    
+                    handPlanet.setAttribute('position', `${targetX} ${targetY} ${targetZ}`);
+                    handPlanet.setAttribute('visible', 'true');
+                    loader.style.display = 'none';
+
+                } else {
+                    handPlanet.setAttribute('visible', 'false');
+                    if (handMode) loader.style.display = 'flex';
+                }
+                requestAnimationFrame(runDetection);
+            });
+        }
+
+        // Завантаження моделі Handtrack.js
+        handtrack.load(modelParams).then(model => {
+            handtrackModel = model;
+            console.log("🧠 Модель Handtrack.js завантажена.");
+            handModeBtn.disabled = false;
+        });
+
+        // Існуючий код
+        function fixHeight() { document.body.style.height = window.innerHeight + 'px'; }
+        fixHeight();
+        window.addEventListener('resize', fixHeight);
+
+        const loader = document.querySelector('#loader');
+        const targetEntity = document.querySelector('[mindar-image-target]');
+        const markerPlanet = document.querySelector('#marker-planet');
+        const handPlanet = document.querySelector('#hand-planet');
         const bgMusic = document.querySelector('#bg-music');
-        let isPainting = false;
+        const soundBtn = document.querySelector('#sound-btn');
+        const handModeBtn = document.querySelector('#hand-mode-btn');
+        const modal = document.querySelector('#modal');
+        const modalText = document.querySelector('#modal-text');
+        let handMode = false;
+        handModeBtn.disabled = true; // Вимкнути кнопку, доки модель не завантажиться
 
-        // Ініціалізація музики
-        bgMusic.play().catch(e => console.log("🔇 Помилка музики:", e));
+        if (targetEntity) {
+            targetEntity.addEventListener('targetFound', () => {
+                console.log("🎯 Маркер знайдено! Планета з'явилася.");
+                loader.style.display = 'none';
+                if (markerPlanet) markerPlanet.setAttribute('visible', 'true');
+                if (bgMusic) {
+                    bgMusic.play().catch(e => console.log("🔇 Помилка відтворення музики:", e));
+                    soundBtn.classList.remove('off');
+                    soundBtn.textContent = 'Вимкнути звук';
+                }
+            });
 
-        // Активувати малювання
-        paintBtn.addEventListener('click', () => {
-            isPainting = !isPainting;
-            paintBtn.textContent = isPainting ? 'Вимкнути малювання' : 'Увімкнути малювання';
-            if (isPainting) {
-                initPainter();
+            targetEntity.addEventListener('targetLost', () => {
+                console.log("ℹ️ Маркер втрачено.");
+                if (!handMode) {
+                    loader.style.display = 'flex';
+                    if (markerPlanet) markerPlanet.setAttribute('visible', 'false');
+                    if (bgMusic) bgMusic.pause();
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log("✅ DOM завантажено");
+            const scene = document.querySelector('a-scene');
+            if (!scene) console.error("❌ Сцена A-Frame не знайдена");
+        });
+
+        soundBtn.addEventListener('click', () => {
+            if (bgMusic.paused) {
+                bgMusic.play().catch(e => console.log("🔇 Помилка відтворення музики:", e));
+                soundBtn.classList.remove('off');
+                soundBtn.textContent = 'Вимкнути звук';
             } else {
-                document.querySelectorAll('a-drawing').forEach(drawing => {
-                    drawing.setAttribute('animation', 'property: rotation; to: 0 360 0; dur: 5000; loop: true');
+                bgMusic.pause();
+                soundBtn.classList.add('off');
+                soundBtn.textContent = 'Увімкнути звук';
+            }
+        });
+
+        function showModal(task) {
+            modalText.textContent = task;
+            modal.style.display = 'flex';
+        }
+
+        function closeModal() {
+            modal.style.display = 'none';
+        }
+
+        handModeBtn.addEventListener('click', () => {
+            handMode = !handMode;
+            handModeBtn.textContent = handMode ? 'Вимк. планету на руці' : 'Увімк. планету на руці';
+            if (handMode) {
+                markerPlanet.setAttribute('visible', 'false');
+                startHandTracking();
+                bgMusic.play().catch(e => console.log("🔇 Помилка відтворення музики:", e));
+                soundBtn.classList.remove('off');
+                soundBtn.textContent = 'Вимкнути звук';
+            } else {
+                handPlanet.setAttribute('visible', 'false');
+                markerPlanet.setAttribute('visible', 'false');
+                stopHandTracking();
+                bgMusic.pause();
+                loader.style.display = 'flex';
+            }
+        });
+
+        AFRAME.registerComponent('click-task', {
+            schema: { task: { type: 'string' } },
+            init: function () {
+                this.el.addEventListener('click', () => {
+                    console.log("Клік на точці: ", this.data.task);
+                    showModal(this.data.task);
                 });
             }
         });
 
-        function initPainter() {
-            const paintBrush = document.createElement('a-painter-brush');
-            paintBrush.setAttribute('color', colorPicker.value);
-            paintBrush.setAttribute('size', '0.1');
-            paintSpace.appendChild(paintBrush);
+        AFRAME.registerComponent('gesture-handler', {
+            init: function () {
+                this.el.addEventListener('touchstart', this.onTouchStart.bind(this));
+                this.el.addEventListener('touchmove', this.onTouchMove.bind(this));
+                this.el.addEventListener('touchend', this.onTouchEnd.bind(this));
 
-            scene.addEventListener('mousedown', () => {
-                if (isPainting) paintBrush.setAttribute('active', 'true');
-            });
-            scene.addEventListener('mouseup', () => {
-                if (isPainting) paintBrush.removeAttribute('active');
-            });
-            scene.addEventListener('touchstart', (e) => {
-                if (isPainting) {
-                    e.preventDefault();
-                    paintBrush.setAttribute('active', 'true');
+                this.targetRotation = this.el.getAttribute('rotation') || {x: 0, y: 0, z: 0};
+                this.initialScale = this.el.object3D.scale.x;
+                this.previousTouchDistance = 0;
+                this.isRotating = false;
+                this.isPinching = false;
+                this.startX = 0;
+                this.startY = 0;
+            },
+            onTouchStart: function (evt) {
+                console.log("👆 Touch start:", evt.touches.length, "fingers");
+                if (evt.touches.length === 1) {
+                    this.isRotating = true;
+                    this.startX = evt.touches[0].pageX;
+                    this.startY = evt.touches[0].pageY;
+                } else if (evt.touches.length === 2) {
+                    this.isPinching = true;
+                    this.previousTouchDistance = Math.hypot(
+                        evt.touches[0].pageX - evt.touches[1].pageX,
+                        evt.touches[0].pageY - evt.touches[1].pageY
+                    );
+                    this.initialScale = this.el.object3D.scale.x;
+                    console.log("📏 Initial pinch distance:", this.previousTouchDistance);
                 }
-            });
-            scene.addEventListener('touchend', () => {
-                if (isPainting) paintBrush.removeAttribute('active');
-            });
-
-            colorPicker.addEventListener('change', () => {
-                paintBrush.setAttribute('color', colorPicker.value);
-            });
-        }
-
-        // Анімація для всіх малюнків
-        setInterval(() => {
-            if (!isPainting) {
-                document.querySelectorAll('a-drawing').forEach(drawing => {
-                    const pos = drawing.getAttribute('position');
-                    drawing.setAttribute('position', `${pos.x} ${pos.y + 0.01} ${pos.z}`);
-                });
+            },
+            onTouchMove: function (evt) {
+                console.log("👉 Touch move:", evt.touches.length, "fingers");
+                evt.preventDefault();
+                if (this.isRotating && evt.touches.length === 1) {
+                    const deltaX = evt.touches[0].pageX - this.startX;
+                    const deltaY = evt.touches[0].pageY - this.startY;
+                    this.targetRotation.y += deltaX * 0.5;
+                    this.targetRotation.x += deltaY * 0.5;
+                    this.el.setAttribute('rotation', `${this.targetRotation.x} ${this.targetRotation.y} 0`);
+                    this.startX = evt.touches[0].pageX;
+                    this.startY = evt.touches[0].pageY;
+                } else if (this.isPinching && evt.touches.length === 2) {
+                    const currentTouchDistance = Math.hypot(
+                        evt.touches[0].pageX - evt.touches[1].pageX,
+                        evt.touches[0].pageY - evt.touches[1].pageY
+                    );
+                    console.log("📏 Current pinch distance:", currentTouchDistance);
+                    const scaleFactor = currentTouchDistance / this.previousTouchDistance;
+                    const newScale = Math.max(0.5, Math.min(3, this.initialScale * scaleFactor));
+                    this.el.setAttribute('scale', `${newScale} ${newScale} ${newScale}`);
+                    this.previousTouchDistance = currentTouchDistance;
+                    console.log("🔍 New scale:", newScale);
+                }
+            },
+            onTouchEnd: function (evt) {
+                console.log("✋ Touch end:", evt.touches.length, "fingers");
+                if (evt.touches.length === 0) {
+                    this.isRotating = false;
+                    this.isPinching = false;
+                }
             }
-        }, 100);
+        });
     </script>
 </body>
 </html>
