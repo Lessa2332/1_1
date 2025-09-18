@@ -53,6 +53,38 @@
         .pulse {
             animation: pulse 1.5s infinite;
         }
+        /* Стилі для кнопок звуку та YouTube */
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            z-index: 10000;
+        }
+        .sound-btn, .youtube-btn {
+            padding: 10px 20px;
+            margin-right: 10px;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            font-family: 'Comic Neue', 'Comic Sans MS', cursive, sans-serif;
+            font-size: 1em;
+        }
+        .sound-btn {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .sound-btn.off {
+            background-color: #f44336;
+        }
+        .youtube-btn {
+            background-color: #FF9800; /* Помаранчевий колір */
+            color: white;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .youtube-btn:hover {
+            background-color: #FFB300;
+        }
     </style>
 </head>
 <body>
@@ -71,6 +103,10 @@
         embedded
         renderer="colorManagement: true; physicallyCorrectLights: true;"
     >
+        <a-assets>
+            <audio id="bg-music" src="./bg-music.mp3" preload="auto" loop></audio>
+        </a-assets>
+
         <a-camera
             id="camera"
             look-controls="enabled: false"
@@ -118,6 +154,11 @@
         </a-entity>
     </a-scene>
 
+    <div class="controls">
+        <button id="sound-btn" class="sound-btn">Увімкнути звук</button>
+        <a href="https://www.youtube.com/playlist?list=PL6UDFwT9TzFw5K8Tzu_OgsDz7vV3N9eY-" target="_blank" class="youtube-btn">YouTube SmartLessa</a>
+    </div>
+
     <script>
         function fixHeight() {
             document.body.style.height = window.innerHeight + 'px';
@@ -128,18 +169,26 @@
         const loader = document.querySelector('#loader');
         const targetEntity = document.querySelector('[mindar-image-target]');
         const planet = document.querySelector('#planet');
+        const bgMusic = document.querySelector('#bg-music');
+        const soundBtn = document.querySelector('#sound-btn');
 
         if (targetEntity) {
             targetEntity.addEventListener('targetFound', () => {
                 console.log("🎯 Маркер знайдено! Планета з\'явилася.");
                 loader.style.display = 'none';
                 if (planet) planet.setAttribute('visible', 'true');
+                if (bgMusic) {
+                    bgMusic.play().catch(e => console.log("🔇 Помилка відтворення музики:", e));
+                    soundBtn.classList.remove('off');
+                    soundBtn.textContent = 'Вимкнути звук';
+                }
             });
 
             targetEntity.addEventListener('targetLost', () => {
                 console.log("ℹ️ Маркер втрачено.");
                 loader.style.display = 'block';
                 if (planet) planet.setAttribute('visible', 'false');
+                if (bgMusic) bgMusic.pause();
             });
         }
 
@@ -148,6 +197,19 @@
             console.log("✅ DOM завантажено");
             const scene = document.querySelector('a-scene');
             if (!scene) console.error("❌ Сцена A-Frame не знайдена");
+        });
+
+        // Керування звуком
+        soundBtn.addEventListener('click', () => {
+            if (bgMusic.paused) {
+                bgMusic.play().catch(e => console.log("🔇 Помилка відтворення музики:", e));
+                soundBtn.classList.remove('off');
+                soundBtn.textContent = 'Вимкнути звук';
+            } else {
+                bgMusic.pause();
+                soundBtn.classList.add('off');
+                soundBtn.textContent = 'Увімкнути звук';
+            }
         });
     </script>
 
