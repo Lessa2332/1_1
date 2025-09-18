@@ -214,9 +214,13 @@
     </script>
 
     <script>
-        // Компонент для обробки жестів
+        // Компонент для обробки жестів (локальні події + дебаг)
         AFRAME.registerComponent('gesture-handler', {
             init: function () {
+                this.el.addEventListener('touchstart', this.onTouchStart.bind(this));
+                this.el.addEventListener('touchmove', this.onTouchMove.bind(this));
+                this.el.addEventListener('touchend', this.onTouchEnd.bind(this));
+
                 this.targetRotation = this.el.getAttribute('rotation') || {x: 0, y: 0, z: 0};
                 this.initialScale = this.el.object3D.scale.x;
                 this.previousTouchDistance = 0;
@@ -224,12 +228,9 @@
                 this.isPinching = false;
                 this.startX = 0;
                 this.startY = 0;
-
-                document.addEventListener('touchstart', this.onTouchStart.bind(this));
-                document.addEventListener('touchmove', this.onTouchMove.bind(this));
-                document.addEventListener('touchend', this.onTouchEnd.bind(this));
             },
             onTouchStart: function (evt) {
+                console.log("👆 Touch start on planet:", evt.touches.length, "fingers");
                 if (evt.touches.length === 1) {
                     this.isRotating = true;
                     this.startX = evt.touches[0].pageX;
@@ -241,9 +242,11 @@
                         evt.touches[0].pageY - evt.touches[1].pageY
                     );
                     this.initialScale = this.el.object3D.scale.x;
+                    console.log("📏 Initial pinch distance:", this.previousTouchDistance);
                 }
             },
             onTouchMove: function (evt) {
+                console.log("👉 Touch move on planet:", evt.touches.length, "fingers");
                 evt.preventDefault();
                 if (this.isRotating && evt.touches.length === 1) {
                     const deltaX = evt.touches[0].pageX - this.startX;
@@ -258,13 +261,16 @@
                         evt.touches[0].pageX - evt.touches[1].pageX,
                         evt.touches[0].pageY - evt.touches[1].pageY
                     );
+                    console.log("📏 Current pinch distance:", currentTouchDistance);
                     const scaleFactor = currentTouchDistance / this.previousTouchDistance;
                     const newScale = Math.max(0.5, Math.min(3, this.initialScale * scaleFactor));
                     this.el.setAttribute('scale', `${newScale} ${newScale} ${newScale}`);
                     this.previousTouchDistance = currentTouchDistance;
+                    console.log("🔍 New scale:", newScale);
                 }
             },
             onTouchEnd: function (evt) {
+                console.log("✋ Touch end on planet:", evt.touches.length, "fingers");
                 if (evt.touches.length === 0) {
                     this.isRotating = false;
                     this.isPinching = false;
