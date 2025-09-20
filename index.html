@@ -247,7 +247,7 @@
                             e.touches[0].pageY - e.touches[1].pageY
                         );
                         this.currentScale = this.pisanka.object3D.scale.x;
-                        console.log('Початок масштабування, відстань:', this.initialDistance);
+                        console.log('Початок масштабування, відстань:', this.initialDistance, 'початковий масштаб:', this.currentScale);
                     }
                 });
 
@@ -261,8 +261,12 @@
                         );
                         const scaleFactor = currentDistance / this.initialDistance;
                         const newScale = Math.max(this.data.minScale, Math.min(this.data.maxScale, this.currentScale * scaleFactor));
-                        this.pisanka.object3D.scale.set(newScale, newScale, newScale);
-                        console.log('Масштабування, новий масштаб:', newScale);
+                        // Зберігаємо пропорцію яйця (0.6:1:0.6)
+                        const eggScaleX = newScale * 0.6;
+                        const eggScaleY = newScale * 1;
+                        const eggScaleZ = newScale * 0.6;
+                        this.pisanka.object3D.scale.set(eggScaleX, eggScaleY, eggScaleZ);
+                        console.log('Масштабування, новий масштаб:', { x: eggScaleX, y: eggScaleY, z: eggScaleZ });
                     } else if (this.isRotating && e.touches.length === 1) {
                         const deltaX = (e.touches[0].pageX - this.startPos.x) * this.data.rotationSpeed;
                         const deltaY = (e.touches[0].pageY - this.startPos.y) * this.data.rotationSpeed;
