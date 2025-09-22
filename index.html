@@ -140,9 +140,164 @@
     </div>
 
     <script>
-        // JavaScript-логіка буде тут
+        // Адаптивність для повного екрану
+        function fixHeight() {
+            document.body.style.height = window.innerHeight + 'px';
+        }
+        fixHeight();
+        window.addEventListener('resize', fixHeight);
+
+        // Посилання на елементи
+        const loader = document.querySelector('#loader');
+        const targetEntity = document.querySelector('[mindar-image-target]');
+        const pisanka = document.querySelector('#pisanka');
+        const bgMusic = document.querySelector('#bg-music');
+        const soundBtn = document.querySelector('#sound-btn');
+        const nextBtn = document.querySelector('#next-btn');
+
+        // Масив з ідентифікаторами текстур
+        const pisankaTextures = ['#pisanka-texture-1', '#pisanka-texture-2', '#pisanka-texture-3', '#pisanka-texture-4'];
+        let currentTextureIndex = 0;
+
+        // Перевірка завантаження текстур
+        pisankaTextures.forEach(id => {
+            const textureEl = document.querySelector(id);
+            if (textureEl) {
+                textureEl.addEventListener('load', () => {
+                    console.log(`Текстура ${id} успішно завантажена`);
+                });
+                textureEl.addEventListener('error', () => {
+                    console.error(`Помилка завантаження текстури ${id}`);
+                });
+            }
+        });
+
+
+        // Логіка відстеження маркера
+        if (targetEntity) {
+            targetEntity.addEventListener('targetFound', () => {
+                console.log("🎯 Маркер знайдено! Писанка з'явилася.");
+                loader.style.display = 'none';
+                if (pisanka) {
+                    pisanka.setAttribute('visible', 'true');
+                    console.log("Писанка видима:", pisanka.getAttribute('visible'));
+                    pisanka.components.animation.pause();
+                }
+                if (bgMusic && bgMusic.paused) {
+                    bgMusic.play().catch(e => console.log("🔇 Помилка відтворення музики:", e));
+                    soundBtn.classList.remove('off');
+                    soundBtn.textContent = 'Вимкнути звук';
+                }
+            });
+
+            targetEntity.addEventListener('targetLost', () => {
+                console.log("ℹ️ Маркер втрачено.");
+                if (pisanka) {
+                    pisanka.setAttribute('visible', 'false');
+                    console.log("Писанка невидима:", pisanka.getAttribute('visible'));
+                    pisanka.components.animation.play();
+                }
+                if (bgMusic && !bgMusic.paused) bgMusic.pause();
+                loader.style.display = 'flex';
+                loader.querySelector('.pulse').textContent = '🥚 Писанка на долоні 🎨';
+                loader.querySelector('div[style]').textContent = 'Наведи камеру на маркер! 😊🎨';
+            });
+        } else {
+            console.error('Елемент mindar-image-target не знайдено!');
+        }
+
+        // Обробка кнопки звуку
+        soundBtn.addEventListener('click', () => {
+            if (bgMusic.paused) {
+                bgMusic.play().catch(e => console.log("🔇 Помилка відтворення музики:", e));
+                soundBtn.classList.remove('off');
+                soundBtn.textContent = 'Вимкнути звук';
+            } else {
+                bgMusic.pause();
+                soundBtn.classList.add('off');
+                soundBtn.textContent = 'Увімкнути звук';
+            }
+        });
+
+        // Обробка кнопки "Далі"
+        nextBtn.addEventListener('click', () => {
+            // Збільшуємо індекс на 1, а потім використовуємо оператор модуля (%)
+            // щоб повернутися до початку масиву, коли досягнемо кінця.
+            currentTextureIndex = (currentTextureIndex + 1) % pisankaTextures.length;
+
+            // Оновлюємо атрибут 'src' писанки на нову текстуру.
+            pisanka.setAttribute('src', pisankaTextures[currentTextureIndex]);
+            console.log(`🖼️ Змінено текстуру на: ${pisankaTextures[currentTextureIndex]}`);
+        });
+
+
+        // Компонент для обробки сенсорних жестів
+        AFRAME.registerComponent('touch-gestures', {
+            schema: {
+                minScale: { type: 'number', default: 0.2 },
+                maxScale: { type: 'number', default: 3.0 },
+                rotationSpeed: { type: 'number', default: 2.0 }
+            },
+            init: function () {
+                this.isRotating = false;
+                this.isPinching = false;
+                this.startPos = { x: 0, y: 0 };
+                this.currentScale = 1;
+                this.pisanka = document.querySelector('#pisanka');
+
+                if (!this.pisanka) {
+                    console.error('Писанка не знайдена в компоненті touch-gestures');
+                    return;
+                }
+
+                this.el.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    if (e.touches.length === 1) {
+                        this.isRotating = true;
+                        this.startPos.x = e.touches[0].pageX;
+                        this.startPos.y = e.touches[0].pageY;
+                    } else if (e.touches.length === 2) {
+                        this.isPinching = true;
+                        this.isRotating = false;
+                        this.initialDistance = Math.hypot(
+                            e.touches[0].pageX - e.touches[1].pageX,
+                            e.touches[0].pageY - e.touches[1].pageY
+                        );
+                        this.currentScale = this.pisanka.object3D.scale.x;
+                    }
+                });
+
+                this.el.addEventListener('touchmove', (e) => {
+                    e.preventDefault();
+                    if (this.isPinching && e.touches.length === 2) {
+                        const currentDistance = Math.hypot(
+                            e.touches[0].pageX - e.touches[1].pageX,
+                            e.touches[0].pageY - e.touches[1].pageY
+                        );
+                        const scaleFactor = currentDistance / this.initialDistance;
+                        const newScale = Math.max(this.data.minScale, Math.min(this.data.maxScale, this.currentScale * scaleFactor));
+                        // Зберігаємо пропорцію яйця (0.6:1:0.6)
+                        const eggScaleX = newScale * 0.6;
+                        const eggScaleY = newScale * 1;
+                        const eggScaleZ = newScale * 0.6;
+                        this.pisanka.object3D.scale.set(eggScaleX, eggScaleY, eggScaleZ);
+                    } else if (this.isRotating && e.touches.length === 1) {
+                        const deltaX = (e.touches[0].pageX - this.startPos.x) * this.data.rotationSpeed;
+                        const deltaY = (e.touches[0].pageY - this.startPos.y) * this.data.rotationSpeed;
+                        this.pisanka.object3D.rotation.y += THREE.MathUtils.degToRad(deltaX);
+                        this.pisanka.object3D.rotation.x += THREE.MathUtils.degToRad(deltaY);
+                        this.startPos.x = e.touches[0].pageX;
+                        this.startPos.y = e.touches[0].pageY;
+                    }
+                });
+
+                this.el.addEventListener('touchend', () => {
+                    this.isRotating = false;
+                    this.isPinching = false;
+                });
+            }
+        });
     </script>
 </body>
-</html>
 </html>
 
